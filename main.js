@@ -20,35 +20,49 @@ class Piece {
         const col = target.parentNode.id[1];
         let location = new Location(row, col);
         let potential = location.clone();
-        let secondPotential = location.clone();
         const legalMoves = [];
 
-        if (blacksTurn) {
-            potential.traverseUpRight();
-            secondPotential.traverseUpLeft();
-        } else {
-            potential.traverseDownRight();
-            secondPotential.traverseDownLeft();
-        }
-        while (!location.equals(potential)) {
-            if (this.isEmptySquare(potential,board)) {
-                legalMoves.push(potential)
-                break;
+            if (blacksTurn) {
+                potential = this.traverse(potential, Location.traverseUpRight, blacksTurn, board);
             } else {
+                potential = this.traverse(potential, Location.traverseDownRight, blacksTurn, board);
             }
-        }
 
-        if (!location.equals(secondPotential)) {
-            if (this.isEmptySquare(secondPotential, board)) {
-                legalMoves.push(secondPotential);
+            if (potential && !potential.equals(location)) {
+                legalMoves.push(potential.clone());
+            }
+            potential = location.clone();
+            if (blacksTurn) {
+                potential = this.traverse(potential, Location.traverseUpLeft, blacksTurn, board);
             } else {
-
+                potential = this.traverse(potential, Location.traverseDownLeft, blacksTurn, board);
             }
-        }
+
+            if (potential && !potential.equals(location)) {
+                legalMoves.push(potential.clone());
+            }
 
         return legalMoves;
     }
 
+    traverse(potential, traverseCallback, blacksTurn, board) {
+        let i = 0;
+        while (i < 2) {
+            potential = traverseCallback(potential);
+            if (this.isEmptySquare(potential, board)) {
+                return potential;
+            } else if (this.isEnemyPiece(potential, board, blacksTurn)) {
+                i++;
+            }
+        }
+        return null;
+    }
+
+    isEnemyPiece(location, board, blacksTurn) {
+        if (board[location.row][location.col].firstChild.value.isWhite === blacksTurn)
+            return true;
+        return false;
+    }
 
     move(move, board) {
         let startingPiece = board[move.startingLocation.row][move.startingLocation.col].firstChild;
@@ -75,38 +89,38 @@ class Location {
         return new Location(this.row, this.col);
     }
 
-    traverseUpRight() {
-        if (this.col != 7 && this.row != 0) {
-            this.row--;
-            this.col++;
+    static traverseUpRight(location) {
+        if (location.col != 7 && location.row != 0) {
+            location.row--;
+            location.col++;
         }
-        return this;
+        return location;
     }
 
-    traverseDownRight() {
-        if (this.col != 7 && this.row != 7) {
-            this.row++;
-            this.col++;
+    static traverseDownRight(location) {
+        if (location.col != 7 && location.row != 7) {
+            location.row++;
+            location.col++;
         }
-        return this;
-
-    }
-
-    traverseUpLeft() {
-        if (this.col != 0 && this.row != 0) {
-            this.row--;
-            this.col--;
-        }
-        return this;
+        return location;
 
     }
 
-    traverseDownLeft() {
-        if (this.col != 0 && this.row != 7) {
-            this.row++;
-            this.col--;
+    static traverseUpLeft(location) {
+        if (location.col != 0 && location.row != 0) {
+            location.row--;
+            location.col--;
         }
-        return this;
+        return location;
+
+    }
+
+    static traverseDownLeft(location) {
+        if (location.col != 0 && location.row != 7) {
+            location.row++;
+            location.col--;
+        }
+        return location;
 
     }
 
@@ -166,6 +180,7 @@ const addSelection = function () {
     selectedPiece.classList.add("scale");
     selectedPiece.parentNode.classList.add("selected");
     let potentials = selectedPiece.value.getLegalMoves(selectedPiece, board, blacksTurn);
+    console.log(potentials);
     selectPotentials(potentials);
 
 }
