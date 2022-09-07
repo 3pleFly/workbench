@@ -189,8 +189,8 @@ let pieces;
 let blacksTurn = true;
 let selectedPiece = null;
 let potentialSquares = [];
-let burnedPieceId = null;
-let burnedPiece = null;
+let burned = [];
+
 
 const initializeBoard = function () {
     let tableDataArray = document.querySelectorAll("td");
@@ -211,6 +211,7 @@ const removeSelection = function () {
     }
     potentialSquares = [];
     selectedPiece = null;
+    burned = [];
 }
 
 const addSelection = function () {
@@ -266,7 +267,6 @@ const createPieces = function (pieces) {
 }
 
 const canMultiJump = function () {
-
     let potentials = selectedPiece.value.getLegalMoves(selectedPiece, board, blacksTurn);
     let startingLocation = new Location(selectedPiece.parentNode.id[0], selectedPiece.parentNode.id[1]);
     for (const location of potentials) {
@@ -278,6 +278,10 @@ const canMultiJump = function () {
     return false;
 }
 
+const removePiece = function (location, piece) {
+    board[location.row][location.col].removeChild(piece);
+}
+
 const selectSquare = function (e) {
     findBurnedPiece(!blacksTurn);
     if (selectedPiece) {
@@ -287,20 +291,19 @@ const selectSquare = function (e) {
                 if (location.equals(potent)) {
                     let startingLocation = new Location(selectedPiece.parentNode.id[0], selectedPiece.parentNode.id[1]);
                     let move = new Move(startingLocation, potent)
-                    if (burnedPieceId && Math.abs(move.getMoveDifference().row) != 2) {
-                        let burnedLocation = findPieceLocation(burnedPieceId);
-                        board[burnedLocation.row][burnedLocation.col].removeChild(burnedPiece);
-                        burnedPiece = null;
-                        burnedPieceId = null;
+                    if (burned.length != 0 && Math.abs(move.getMoveDifference().row) !== 2) {
+                        for (const burnId of burned) {
+                            let burnedLocation = findPieceLocation(burnId);
+                            removePiece(burnedLocation, board[burnedLocation.row][burnedLocation.col].firstChild);
+                        }
                     }
                     if (selectedPiece.parentNode) {
                         selectedPiece.value.move(move, board, blacksTurn);
-                        if (canMultiJump()) {
+                        if (Math.abs(move.getMoveDifference().row) === 2 && canMultiJump()) {
                             removeSelection(selectedPiece);
                             return;
                         }
                     }
-
                     removeSelection(selectedPiece);
                     blacksTurn = !blacksTurn;
                     return;
@@ -324,9 +327,7 @@ const findBurnedPiece = function (blacksTurn) {
                 for (const location of locations) {
                     let move = new Move(startingLocation, location);
                     if (piece.firstChild.value.isJumpMove(move)) {
-                        burnedPiece = piece.firstChild;
-                        burnedPieceId = piece.firstChild.value.id;
-                        return;
+                        burned.push(piece.firstChild.value.id);
                     }
                 }
 
