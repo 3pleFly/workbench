@@ -1,5 +1,7 @@
 class Piece {
 
+    eatingLocation = null;
+
     constructor(isWhite) {
         this.isWhite = isWhite;
     }
@@ -22,25 +24,25 @@ class Piece {
         let potential = location.clone();
         const legalMoves = [];
 
-            if (blacksTurn) {
-                potential = this.traverse(potential, Location.traverseUpRight, blacksTurn, board);
-            } else {
-                potential = this.traverse(potential, Location.traverseDownRight, blacksTurn, board);
-            }
+        if (blacksTurn) {
+            potential = this.traverse(potential, Location.traverseUpRight, blacksTurn, board);
+        } else {
+            potential = this.traverse(potential, Location.traverseDownRight, blacksTurn, board);
+        }
 
-            if (potential && !potential.equals(location)) {
-                legalMoves.push(potential.clone());
-            }
-            potential = location.clone();
-            if (blacksTurn) {
-                potential = this.traverse(potential, Location.traverseUpLeft, blacksTurn, board);
-            } else {
-                potential = this.traverse(potential, Location.traverseDownLeft, blacksTurn, board);
-            }
+        if (potential && !potential.equals(location)) {
+            legalMoves.push(potential.clone());
+        }
+        potential = location.clone();
+        if (blacksTurn) {
+            potential = this.traverse(potential, Location.traverseUpLeft, blacksTurn, board);
+        } else {
+            potential = this.traverse(potential, Location.traverseDownLeft, blacksTurn, board);
+        }
 
-            if (potential && !potential.equals(location)) {
-                legalMoves.push(potential.clone());
-            }
+        if (potential && !potential.equals(location)) {
+            legalMoves.push(potential.clone());
+        }
 
         return legalMoves;
     }
@@ -52,7 +54,11 @@ class Piece {
             if (this.isEmptySquare(potential, board)) {
                 return potential;
             } else if (this.isEnemyPiece(potential, board, blacksTurn)) {
+                console.log('?');
+                this.eatingLocation = potential;
                 i++;
+            } else {
+                return null;
             }
         }
         return null;
@@ -64,16 +70,46 @@ class Piece {
         return false;
     }
 
-    move(move, board) {
+    move(move, board, blacksTurn) {
         let startingPiece = board[move.startingLocation.row][move.startingLocation.col].firstChild;
         board[move.startingLocation.row][move.startingLocation.col].removeChild(startingPiece);
         board[move.endingLocation.row][move.endingLocation.col].appendChild(startingPiece);
+
+        if(this.isJumpMove(move)) {
+            this.eatInJump(move);
+        }
+
     }
 
+
+    isJumpMove(move) {
+        let locationDiff = move.getMoveDifference();
+        if (Math.abs(locationDiff.row) === 2)
+            return true;
+        return false;
+    }
+
+    eatInJump(move) {
+        let locationDiff = move.getMoveDifference();
+        let eatLocation = move.endingLocation.clone();
+        if (locationDiff.row === 2) {
+            eatLocation.row--;
+        }
+        if (locationDiff.row === -2) {
+            eatLocation.row++;
+        }
+        if (locationDiff.col > 0) {
+            eatLocation.col--;
+        }
+        if (locationDiff.col < 0) {
+            eatLocation.col++;
+        }
+        let eatPiece = board[eatLocation.row][eatLocation.col].firstChild;
+        board[eatLocation.row][eatLocation.col].removeChild(eatPiece);
+    }
 }
 
 class King extends Piece {
-
     constructor(isWhite) {
         super(isWhite);
     }
@@ -147,6 +183,10 @@ class Move {
         this.endingLocation = endingLocation;
     }
 
+    getMoveDifference() {
+        return new Location(this.endingLocation.row - this.startingLocation.row, this.endingLocation.col - this.startingLocation.col);
+    }
+
 
 }
 
@@ -180,7 +220,6 @@ const addSelection = function () {
     selectedPiece.classList.add("scale");
     selectedPiece.parentNode.classList.add("selected");
     let potentials = selectedPiece.value.getLegalMoves(selectedPiece, board, blacksTurn);
-    console.log(potentials);
     selectPotentials(potentials);
 
 }
@@ -237,7 +276,7 @@ const selectSquare = function (e) {
                 if (location.equals(potent)) {
                     let startingLocation = new Location(selectedPiece.parentNode.id[0], selectedPiece.parentNode.id[1]);
                     let move = new Move(startingLocation, potent)
-                    selectedPiece.value.move(move, board);
+                    selectedPiece.value.move(move, board, blacksTurn);
                     blacksTurn = !blacksTurn;
                     break;
                 }

@@ -138,7 +138,6 @@ table {
 
 .board {
     outline: 5px rgb(63, 26, 0) solid;
-    /* background: rgb(252, 134, 0); */
     background: radial-gradient(rgb(211, 78, 4) 37%, rgb(161, 58, 2) 100%);
     position: absolute;
     top: 0;
@@ -148,6 +147,7 @@ table {
     margin: auto;
     width: 40vw;
     height: 40vw;
+
 }
 
 td {
