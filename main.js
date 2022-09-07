@@ -1,15 +1,12 @@
 class Piece {
 
     eatingLocation = null;
+    id = null;
 
-    constructor(isWhite) {
+    constructor(isWhite, id) {
         this.isWhite = isWhite;
+        this.id = id;
     }
-
-    isLegalMove(blacksTurn) {
-
-    }
-
     isEmptySquare(location, board) {
         if (board[location.row][location.col].firstChild === null) {
             return true;
@@ -54,7 +51,6 @@ class Piece {
             if (this.isEmptySquare(potential, board)) {
                 return potential;
             } else if (this.isEnemyPiece(potential, board, blacksTurn)) {
-                console.log('?');
                 this.eatingLocation = potential;
                 i++;
             } else {
@@ -189,13 +185,16 @@ class Move {
 }
 
 let board;
+let pieces;
 let blacksTurn = true;
 let selectedPiece = null;
 let potentialSquares = [];
+let burnedPieceId = null;
+let burnedPiece = null;
 
 const initializeBoard = function () {
     let tableDataArray = document.querySelectorAll("td");
-    let pieces = document.querySelectorAll("span");
+    pieces = document.querySelectorAll("span");
     board = create2DBoard(tableDataArray);
     createSquares(board);
     createPieces(pieces);
@@ -253,13 +252,13 @@ const isCorrectTurn = function (target) {
 
 const createPieces = function (pieces) {
     for (let i = 0; i < 12; i++) {
-        pieces[i].value = new Piece(true);
+        pieces[i].value = new Piece(true, i);
         pieces[i].classList.add("piece");
         pieces[i].classList.add("white-piece");
         pieces[i].addEventListener("click", selectPiece);
     }
     for (let i = 12; i < 24; i++) {
-        pieces[i].value = new Piece(false);
+        pieces[i].value = new Piece(false, i);
         pieces[i].classList.add("piece");
         pieces[i].classList.add("dark-piece");
         pieces[i].addEventListener("click", selectPiece);
@@ -280,6 +279,7 @@ const canMultiJump = function () {
 }
 
 const selectSquare = function (e) {
+    findBurnedPiece(!blacksTurn);
     if (selectedPiece) {
         let location = new Location(e.target.id[0], e.target.id[1]);
         if (potentialSquares != null) {
@@ -287,23 +287,65 @@ const selectSquare = function (e) {
                 if (location.equals(potent)) {
                     let startingLocation = new Location(selectedPiece.parentNode.id[0], selectedPiece.parentNode.id[1]);
                     let move = new Move(startingLocation, potent)
-                    selectedPiece.value.move(move, board, blacksTurn);
-                    if (selectedPiece.value.isJumpMove(move)) {
+                    if (burnedPieceId && Math.abs(move.getMoveDifference().row) != 2) {
+                        let burnedLocation = findPieceLocation(burnedPieceId);
+                        board[burnedLocation.row][burnedLocation.col].removeChild(burnedPiece);
+                        burnedPiece = null;
+                        burnedPieceId = null;
+                    }
+                    if (selectedPiece.parentNode) {
+                        selectedPiece.value.move(move, board, blacksTurn);
                         if (canMultiJump()) {
-                            break;
+                            removeSelection(selectedPiece);
+                            return;
                         }
                     }
 
-
+                    removeSelection(selectedPiece);
                     blacksTurn = !blacksTurn;
-                    break;
+                    return;
                 }
             }
+            removeSelection(selectedPiece);
+            return;
         }
+        blacksTurn = !blacksTurn;
 
-        removeSelection(selectedPiece);
     }
 }
+
+const findBurnedPiece = function (blacksTurn) {
+    for (let i = 0; i < 8; i++) {
+        for (let j = 0; j < 8; j++) {
+            let piece = board[i][j];
+            if (piece.firstChild && piece.firstChild.value.isWhite === blacksTurn) {
+                let locations = piece.firstChild.value.getLegalMoves(piece.firstChild, board, !blacksTurn)
+                let startingLocation = new Location(i, j);
+                for (const location of locations) {
+                    let move = new Move(startingLocation, location);
+                    if (piece.firstChild.value.isJumpMove(move)) {
+                        burnedPiece = piece.firstChild;
+                        burnedPieceId = piece.firstChild.value.id;
+                        return;
+                    }
+                }
+
+            }
+        }
+    }
+}
+
+
+const findPieceLocation = function (id) {
+    for (let i = 0; i < 8; i++) {
+        for (let j = 0; j < 8; j++) {
+            if (board[i][j].firstChild && board[i][j].firstChild.value.id === id) {
+                return new Location(i, j)
+            }
+        }
+    }
+}
+
 
 const createSquares = function () {
     for (let i = 0; i < 8; i++) {
