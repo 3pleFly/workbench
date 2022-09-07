@@ -74,13 +74,11 @@ class Piece {
         let startingPiece = board[move.startingLocation.row][move.startingLocation.col].firstChild;
         board[move.startingLocation.row][move.startingLocation.col].removeChild(startingPiece);
         board[move.endingLocation.row][move.endingLocation.col].appendChild(startingPiece);
-
-        if(this.isJumpMove(move)) {
+        if (this.isJumpMove(move)) {
             this.eatInJump(move);
         }
 
     }
-
 
     isJumpMove(move) {
         let locationDiff = move.getMoveDifference();
@@ -268,6 +266,19 @@ const createPieces = function (pieces) {
     }
 }
 
+const canMultiJump = function () {
+
+    let potentials = selectedPiece.value.getLegalMoves(selectedPiece, board, blacksTurn);
+    let startingLocation = new Location(selectedPiece.parentNode.id[0], selectedPiece.parentNode.id[1]);
+    for (const location of potentials) {
+        let move = new Move(startingLocation, location)
+        if (selectedPiece.value.isJumpMove(move)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 const selectSquare = function (e) {
     if (selectedPiece) {
         let location = new Location(e.target.id[0], e.target.id[1]);
@@ -277,6 +288,13 @@ const selectSquare = function (e) {
                     let startingLocation = new Location(selectedPiece.parentNode.id[0], selectedPiece.parentNode.id[1]);
                     let move = new Move(startingLocation, potent)
                     selectedPiece.value.move(move, board, blacksTurn);
+                    if (selectedPiece.value.isJumpMove(move)) {
+                        if (canMultiJump()) {
+                            break;
+                        }
+                    }
+
+
                     blacksTurn = !blacksTurn;
                     break;
                 }
