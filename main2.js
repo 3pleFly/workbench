@@ -69,13 +69,40 @@ class Checkers {
 
     selectSquare(game, event) {
         if (game.board.select) {
-            game.setBurnedPieces();
             if (game.board.getPotentialMovesFromHighlights().includes(event.target)) {
+                if (game.isJumpMove(event.target)) {
+                    game.startEat(event.target);
+                    if(game.canMultiJump(event.target)) {
+                        game.highlightNextMoves(event.target);
+                        return;
+                    }
+                }
                 game.move(event.target);
-                game.whitesTurn = !game.whitesTurn;
             }
         }
         game.deselect();
+    }
+
+    highlightNextMoves(target) {
+        let selectedPieceCopy = this.selectedPiece;
+        this.deselect();
+        let location = this.createLocationFromSquare(target);
+        this.board.highlightOptions(location, this.whitesTurn);
+        this.board.select = true;
+        this.selectedPiece = selectedPieceCopy;
+    }
+
+    canMultiJump(target) {
+        let location = this.createLocationFromSquare(target);
+        let potentials = this.board.getLegalMoves(location, this.whitesTurn)
+        if(potentials.length > 0) {
+            for (const location of potentials) {
+                if(this.isLocationJumpMove(location)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     deselect() {
@@ -94,25 +121,29 @@ class Checkers {
         return false;
     }
 
+    isLocationJumpMove(location) {
+        let startingLocation = this.createLocationFromSquare(this.selectedPiece.parentNode);
+        let diff = Location.getMoveDifference(startingLocation, location);
+        if (Math.abs(diff.row) === 2) {
+            return true;
+        }
+        return false;
+    }
+
+
     isSquareEmpty(target) {
         let location = this.board.findSquare(target);
         return this.board.isEmptySquare(location);
     }
 
-    jump() {
-
-    }
-
     move(target) {
+        this.setBurnedPieces();
         if (this.burnedPieces.length > 0) {
             if (!this.isJumpMove(target))
                 this.board.burnPieces(this.burnedPieces);
         }
-        if (this.isJumpMove(target)) {
-            this.startEat(target);
-            return;
-        }
         this.board.movePiece(this.selectedPiece, target);
+        this.whitesTurn = !this.whitesTurn;
     }
 
     setBurnedPieces() {
@@ -153,6 +184,7 @@ class Checkers {
         let eatLocation = new Location(starting.row + diff.row, starting.col + diff.col);
         this.board.burnPieces([this.board.squares[eatLocation.row][eatLocation.col].firstChild]);
         this.board.movePiece(this.selectedPiece, target);
+        
 
     }
 
