@@ -44,14 +44,14 @@ class Piece {
         return legalMoves;
     }
 
-    traverse(potential, traverseCallback, blacksTurn, board) {
+    traverse(location, traverseCallback, blacksTurn, board) {
         let i = 0;
         while (i < 2) {
-            potential = traverseCallback(potential);
-            if (this.isEmptySquare(potential, board)) {
-                return potential;
-            } else if (this.isEnemyPiece(potential, board, blacksTurn)) {
-                this.eatingLocation = potential;
+            location = traverseCallback(location);
+            if (this.isEmptySquare(location, board)) {
+                return location;
+            } else if (this.isEnemyPiece(location, board, blacksTurn)) {
+                this.eatingLocation = location;
                 i++;
             } else {
                 return null;
@@ -158,13 +158,6 @@ class Location {
         if (parseInt(location.row) === parseInt(this.row) && parseInt(location.col) === parseInt(this.col))
             return true;
         return false;
-    }
-
-    getLocationDifference(location) {
-        let diff = new Location();
-        diff.row = location.row - this.row;
-        diff.col = location.col - this.col;
-        return diff;
     }
 
 

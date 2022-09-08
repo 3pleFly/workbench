@@ -179,7 +179,7 @@ td {
     background: radial-gradient(circle at 100px 100px,rgb(31, 31, 31), #a7a7a7);
 }
 
-.dark-piece {
+.black-piece {
     background: radial-gradient(circle at 100px 100px, #4d4d4d, rgb(44, 44, 44));
 
 }
