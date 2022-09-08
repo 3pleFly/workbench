@@ -70,7 +70,6 @@ class Checkers {
     selectSquare(game, event) {
         if (game.board.select) {
             game.setBurnedPieces();
-            console.log(game.burnedPieces);
             if (game.board.getPotentialMovesFromHighlights().includes(event.target)) {
                 game.move(event.target);
                 game.whitesTurn = !game.whitesTurn;
@@ -107,7 +106,11 @@ class Checkers {
     move(target) {
         if (this.burnedPieces.length > 0) {
             if (!this.isJumpMove(target))
-            this.board.burnPieces(this.burnedPieces);
+                this.board.burnPieces(this.burnedPieces);
+        }
+        if (this.isJumpMove(target)) {
+            this.startEat(target);
+            return;
         }
         this.board.movePiece(this.selectedPiece, target);
     }
@@ -132,10 +135,26 @@ class Checkers {
         }
     }
 
-    eat(event) {
+    startEat(target) {
+        let starting = this.createLocationFromSquare(this.selectedPiece.parentNode);
+        let targetLocation = this.createLocationFromSquare(target);
+        let diff = Location.getMoveDifference(starting, targetLocation);
+
+        if (diff.row < 0) {
+            diff.row++;
+        } else {
+            diff.row--;
+        }
+        if (diff.col < 0) {
+            diff.col++;
+        } else {
+            diff.col--;
+        }
+        let eatLocation = new Location(starting.row + diff.row, starting.col + diff.col);
+        this.board.burnPieces([this.board.squares[eatLocation.row][eatLocation.col].firstChild]);
+        this.board.movePiece(this.selectedPiece, target);
 
     }
-
 
     createLocationFromSquare(square) {
         for (let i = 0; i < this.board.squares.length; i++) {
@@ -172,8 +191,6 @@ class Board {
         this.select = false;
     }
 
-
-
     getPotentialMovesFromHighlights() {
         let potentialMoves = [];
         for (let index = 1; index < this.highlights.length; index++) {
@@ -182,7 +199,7 @@ class Board {
         return potentialMoves;
     }
 
-    burnPieces(pieces, target) {
+    burnPieces(pieces) {
         for (const piece of pieces) {
             let location = this.findSquare(piece.parentNode);
             this.squares[location.row][location.col].removeChild(piece);
@@ -190,7 +207,7 @@ class Board {
     }
 
     movePiece(piece, target) {
-        if(!piece.parentNode) {
+        if (!piece.parentNode) {
             return;
         }
         let starting = this.findSquare(piece.parentNode);
