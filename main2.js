@@ -1,88 +1,3 @@
-class Piece {
-
-    eatingLocation = null;
-    id = null;
-
-    constructor(isWhite, id) {
-        this.isWhite = isWhite;
-        this.id = id;
-    }
-    isEmptySquare(location, board) {
-        if (board[location.row][location.col].firstChild === null) {
-            return true;
-        }
-        return false;
-    }
-
-    getLegalMoves(target, board, blacksTurn) {
-
-    }
-
-    traverse(potential, traverseCallback, blacksTurn, board) {
-        let i = 0;
-        while (i < 2) {
-            potential = traverseCallback(potential);
-            if (this.isEmptySquare(potential, board)) {
-                return potential;
-            } else if (this.isEnemyPiece(potential, board, blacksTurn)) {
-                this.eatingLocation = potential;
-                i++;
-            } else {
-                return null;
-            }
-        }
-        return null;
-    }
-
-    isEnemyPiece(location, board, blacksTurn) {
-        if (board[location.row][location.col].firstChild.value.isWhite === blacksTurn)
-            return true;
-        return false;
-    }
-
-    move(move, board, blacksTurn) {
-        let startingPiece = board[move.startingLocation.row][move.startingLocation.col].firstChild;
-        board[move.startingLocation.row][move.startingLocation.col].removeChild(startingPiece);
-        board[move.endingLocation.row][move.endingLocation.col].appendChild(startingPiece);
-        if (this.isJumpMove(move)) {
-            this.eatInJump(move);
-        }
-
-    }
-
-    isJumpMove(move) {
-        let locationDiff = move.getMoveDifference();
-        if (Math.abs(locationDiff.row) === 2)
-            return true;
-        return false;
-    }
-
-    eatInJump(move) {
-        let locationDiff = move.getMoveDifference();
-        let eatLocation = move.endingLocation.clone();
-        if (locationDiff.row === 2) {
-            eatLocation.row--;
-        }
-        if (locationDiff.row === -2) {
-            eatLocation.row++;
-        }
-        if (locationDiff.col > 0) {
-            eatLocation.col--;
-        }
-        if (locationDiff.col < 0) {
-            eatLocation.col++;
-        }
-        let eatPiece = board[eatLocation.row][eatLocation.col].firstChild;
-        board[eatLocation.row][eatLocation.col].removeChild(eatPiece);
-    }
-}
-
-class King extends Piece {
-    constructor(isWhite) {
-        super(isWhite);
-    }
-}
-
 class Location {
     constructor(row, col) {
         this.row = parseInt(row);
@@ -141,6 +56,7 @@ class Checkers {
         this.whitesTurn = false;
         this.board = new Board();
         this.selectedPiece = null;
+        this.burnedPieces = [];
         this.board.putPieces(this.selectPiece, this);
         this.board.initSquares(this.selectSquare, this);
     }
@@ -153,10 +69,9 @@ class Checkers {
 
     selectSquare(game, event) {
         if (game.board.select) {
+            game.setBurnedPieces();
+            console.log(game.burnedPieces);
             if (game.board.getPotentialMovesFromHighlights().includes(event.target)) {
-                if (game.isJumpMove(event.target)) {
-                    console.log('jump move not coded');
-                }
                 game.move(event.target);
                 game.whitesTurn = !game.whitesTurn;
             }
@@ -167,6 +82,7 @@ class Checkers {
     deselect() {
         this.board.removeHighlights();
         this.selectedPiece = null;
+        this.burnedPieces = [];
     }
 
     isJumpMove(target) {
@@ -184,9 +100,36 @@ class Checkers {
         return this.board.isEmptySquare(location);
     }
 
-    move(target) {
-        this.board.movePiece(this.selectedPiece, target);
+    jump() {
 
+    }
+
+    move(target) {
+        if (this.burnedPieces.length > 0) {
+            if (!this.isJumpMove(target))
+            this.board.burnPieces(this.burnedPieces);
+        }
+        this.board.movePiece(this.selectedPiece, target);
+    }
+
+    setBurnedPieces() {
+        for (let i = 0; i < this.board.squares.length; i++) {
+            for (let j = 0; j < this.board.squares[i].length; j++) {
+                if (this.board.squares[i][j].firstChild) {
+                    let piece = this.board.squares[i][j].firstChild;
+                    if (piece.classList.contains('white-piece') && this.whitesTurn ||
+                        piece.classList.contains('black-piece') && !this.whitesTurn) {
+                        let moves = this.board.getLegalMoves(new Location(i, j), this.whitesTurn);
+                        for (let l = 0; l < moves.length; l++) {
+                            let diff = Location.getMoveDifference(new Location(i, j), moves[l]);
+                            if (Math.abs(diff.row) === 2) {
+                                this.burnedPieces.push(piece);
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     eat(event) {
@@ -229,6 +172,8 @@ class Board {
         this.select = false;
     }
 
+
+
     getPotentialMovesFromHighlights() {
         let potentialMoves = [];
         for (let index = 1; index < this.highlights.length; index++) {
@@ -237,14 +182,21 @@ class Board {
         return potentialMoves;
     }
 
-
+    burnPieces(pieces, target) {
+        for (const piece of pieces) {
+            let location = this.findSquare(piece.parentNode);
+            this.squares[location.row][location.col].removeChild(piece);
+        }
+    }
 
     movePiece(piece, target) {
+        if(!piece.parentNode) {
+            return;
+        }
         let starting = this.findSquare(piece.parentNode);
         let ending = this.findSquare(target);
         this.squares[starting.row][starting.col].removeChild(piece);
         this.squares[ending.row][ending.col].appendChild(piece);
-        
     }
 
     getLegalMoves(location, whitesTurn) {
